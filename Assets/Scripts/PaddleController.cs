@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
+[RequireComponent(typeof(NetworkTransform))]
+[RequireComponent(typeof(Rigidbody))]
 public class PaddleController : NetworkBehaviour {
 
     public float batasAtas;
@@ -10,7 +12,19 @@ public class PaddleController : NetworkBehaviour {
 
     public float kecepatan;
     public string axis;
-
+    void Awake()
+    {
+        //register the spaceship in the gamemanager, that will allow to loop on it.
+        NetworkGameManager.aShip.Add(this);
+        if (transform.position.x > 0)
+        {
+            transform.GetComponent<SpriteRenderer>().color = Color.red;
+        }
+        else
+        {
+            transform.GetComponent<SpriteRenderer>().color = Color.blue;
+        }
+    }
     // Use this for initialization
     void Start () {
 		
@@ -44,15 +58,5 @@ public class PaddleController : NetworkBehaviour {
         return Input.GetAxis(axis) * kecepatan * Time.deltaTime;
     }
 
-    private void Awake()
-    {
-        if(transform.position.x > 0)
-        {
-            transform.GetComponent<SpriteRenderer>().color = Color.red;
-        }
-        else
-        {
-            transform.GetComponent<SpriteRenderer>().color = Color.blue;
-        }
-    }
+  
 }

@@ -35,8 +35,8 @@ public class UINetwork : MonoBehaviour
 
         //btnCancel.interactable = false;
 
-        network = GameObject.Find("NetworkManager").GetComponent<NetworkManager>();
-        txInfo.text = "Info : Server Address " + network.networkAddress + " with posrt " + network.networkPort;
+        //network = GameObject.Find("NetworkManager").GetComponent<NetworkManager>();
+        //txInfo.text = "Info : Server Address " + network.networkAddress + " with posrt " + network.networkPort;
     }
 
     // Update is called once per frame
@@ -117,7 +117,7 @@ public class UINetwork : MonoBehaviour
 
     public void StartGame()
     {
-        panelKoneksi.transform.localPosition = new Vector3(-1500, 0, 0);
+        //panelKoneksi.transform.localPosition = new Vector3(-1500, 0, 0);
     }
 
     public void BackMain()

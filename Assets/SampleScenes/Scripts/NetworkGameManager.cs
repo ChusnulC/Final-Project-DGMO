@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class NetworkGameManager : NetworkBehaviour
 {
     static public List<NetworkSpaceship> sShips = new List<NetworkSpaceship>();
+    static public List<PaddleController> aShip = new List<PaddleController>();
     static public NetworkGameManager sInstance = null;
 
     public GameObject uiScoreZone;

@@ -8,7 +8,7 @@ public class BallController : NetworkBehaviour
 {
 
     public int force;
-    Rigidbody2D rigid;
+    Rigidbody rigid;
 
     [SyncVar (hook = "OnChangeScore1")]
     public int scoreP1;
@@ -27,8 +27,8 @@ public class BallController : NetworkBehaviour
     // Use this for initialization
     void Start()
     {
-        rigid = GetComponent<Rigidbody2D>();
-        Vector2 arah = new Vector2(2, 0).normalized;
+        rigid = GetComponent<Rigidbody>();
+        Vector3 arah = new Vector3(2, 0, 0).normalized;
         rigid.AddForce(arah * force);
 
         scoreP1 = 0;
