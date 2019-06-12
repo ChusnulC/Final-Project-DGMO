@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using UnityEngine.Analytics;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(NetworkTransform))]
 [RequireComponent(typeof(Rigidbody))]
@@ -9,6 +11,8 @@ public class NetworkSpaceship : NetworkBehaviour
     public float rotationSpeed = 45.0f;
     public float speed = 2.0f;
     public float maxSpeed = 3.0f;
+
+    public static NetworkSpaceship instance;
 
     public ParticleSystem killParticle;
     public GameObject trailGameobject;
@@ -39,14 +43,28 @@ public class NetworkSpaceship : NetworkBehaviour
     //so we call init from multiple location (depending on what between spaceship & manager is created first).
     protected bool _wasInit = false;
 
+    public VariableJoystick variableJoystick;
+   
     void Awake()
     {
         //register the spaceship in the gamemanager, that will allow to loop on it.
         NetworkGameManager.sShips.Add(this);
+        if(instance == null)
+        {
+            instance = this;
+        }
     }
 
     void Start()
     {
+        variableJoystick = GameObject.Find("Variable Joystick").transform.GetComponent<VariableJoystick>();
+        int playerID = (int)GetComponent<NetworkIdentity>().connectionToServer.connectionId;
+        //int playerID2 = UnityEditor.Networking.PlayerConnection.ConnectedPlayer.Equals.pl
+        print("Aku adalah player" + playerID);
+        GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku adalah player: " + playerID;
+        
+       // Debug.Log("Player " + playerCount + " connected from " + player.ipAddress + ":" + player.port);
+
         _rigidbody = GetComponent<Rigidbody>();
         _collider = GetComponent<Collider>();
 
@@ -62,7 +80,39 @@ public class NetworkSpaceship : NetworkBehaviour
         {//we MAY be awake late (see comment on _wasInit above), so if the instance is already there we init
             Init();
         }
+
+        if(playerID == 0)
+        {
+            transform.position = new Vector3(-100, 0, 0);
+            transform.rotation = Quaternion.Euler(0, 90, 0);
+        }
+        if (playerID == 1)
+        {
+            transform.position = new Vector3(100, 0, 0);
+            transform.rotation = Quaternion.Euler(0, -90, 0);
+        }
+
     }
+
+    public void Shooting()
+    {
+        if (_shootingTimer <= 0)
+        {
+            _shootingTimer = 0.2f;
+            //we call a Command, that will be executed only on server, to spawn a new bullet
+            //we pass the position&forward to be sure to shoot from the right one (server can lag one frame behind)
+            CmdFire(transform.position, transform.forward, _rigidbody.velocity);
+        }
+    }
+
+    void OnMouseDown()
+    {
+        _shootingTimer = 0.2f;
+        //we call a Command, that will be executed only on server, to spawn a new bullet
+        //we pass the position&forward to be sure to shoot from the right one (server can lag one frame behind)
+        CmdFire(transform.position, transform.forward, _rigidbody.velocity);
+    }
+
 
     public void Init()
     {
@@ -95,7 +145,7 @@ public class NetworkSpaceship : NetworkBehaviour
         if (!isLocalPlayer || !_canControl)
             return;
 
-        _rotation = Input.GetAxis("Horizontal");
+        //_rotation = Input.GetAxis("Horizontal");
         _acceleration = Input.GetAxis("Vertical");
 
 
@@ -109,7 +159,8 @@ public class NetworkSpaceship : NetworkBehaviour
 
         if (_shootingTimer > 0)
             _shootingTimer -= Time.deltaTime;
-    }
+
+        }
 
 
     [ClientCallback]
@@ -130,7 +181,15 @@ public class NetworkSpaceship : NetworkBehaviour
             Quaternion rotation = _rigidbody.rotation * Quaternion.Euler(0, _rotation * rotationSpeed * Time.fixedDeltaTime, 0);
             _rigidbody.MoveRotation(rotation);
 
-            _rigidbody.AddForce((rotation * Vector3.forward) * _acceleration * 1000.0f * speed * Time.deltaTime);
+            // _rigidbody.AddForce((rotation * Vector3.forward) * _acceleration * 1000.0f * speed * Time.deltaTime);
+            //_rigidbody.AddForce(0, 0, _acceleration * 1000.0f * speed * Time.deltaTime);
+            //transform.Translate(new Vector3(_acceleration * -10.0f * speed * Time.deltaTime, 0, 0));
+
+            Vector3 direction = Vector3.forward * variableJoystick.Horizontal + Vector3.right * variableJoystick.Horizontal;
+            // rb.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode.VelocityChange);
+            transform.Translate(new Vector3(variableJoystick.Vertical * -10.0f * speed * Time.deltaTime, 0, 0));
+            print("direction = " + variableJoystick.Vertical);
+
 
             if (_rigidbody.velocity.magnitude > maxSpeed * 1000.0f)
             {
