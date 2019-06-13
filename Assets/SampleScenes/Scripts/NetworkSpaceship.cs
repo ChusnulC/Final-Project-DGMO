@@ -44,6 +44,7 @@ public class NetworkSpaceship : NetworkBehaviour
     protected bool _wasInit = false;
 
     public VariableJoystick variableJoystick;
+    public float playerOrientation = -10f;
    
     void Awake()
     {
@@ -90,6 +91,7 @@ public class NetworkSpaceship : NetworkBehaviour
         {
             transform.position = new Vector3(100, 0, 0);
             transform.rotation = Quaternion.Euler(0, -90, 0);
+            playerOrientation = 10f;
         }
 
     }
@@ -102,18 +104,12 @@ public class NetworkSpaceship : NetworkBehaviour
             //we call a Command, that will be executed only on server, to spawn a new bullet
             //we pass the position&forward to be sure to shoot from the right one (server can lag one frame behind)
             CmdFire(transform.position, transform.forward, _rigidbody.velocity);
+
+            
         }
+
+
     }
-
-    void OnMouseDown()
-    {
-        _shootingTimer = 0.2f;
-        //we call a Command, that will be executed only on server, to spawn a new bullet
-        //we pass the position&forward to be sure to shoot from the right one (server can lag one frame behind)
-        CmdFire(transform.position, transform.forward, _rigidbody.velocity);
-    }
-
-
     public void Init()
     {
         if (_wasInit)
@@ -187,7 +183,8 @@ public class NetworkSpaceship : NetworkBehaviour
 
             Vector3 direction = Vector3.forward * variableJoystick.Horizontal + Vector3.right * variableJoystick.Horizontal;
             // rb.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode.VelocityChange);
-            transform.Translate(new Vector3(variableJoystick.Vertical * -10.0f * speed * Time.deltaTime, 0, 0));
+            transform.Translate(new Vector3(variableJoystick.Vertical * playerOrientation * speed * Time.deltaTime, 0, 0));
+            
             print("direction = " + variableJoystick.Vertical);
 
 
@@ -195,7 +192,6 @@ public class NetworkSpaceship : NetworkBehaviour
             {
                 _rigidbody.velocity = _rigidbody.velocity.normalized * maxSpeed * 1000.0f;
             }
-
 
             CheckExitScreen();
         }
@@ -332,7 +328,7 @@ public class NetworkSpaceship : NetworkBehaviour
     [Command]
     public void CmdFire(Vector3 position, Vector3 forward, Vector3 startingVelocity)
     {
-        if (!isClient) //avoid to create bullet twice (here & in Rpc call) on hosting client
+        //if (!isClient) //avoid to create bullet twice (here & in Rpc call) on hosting client
             CreateBullets();
 
         RpcFire();

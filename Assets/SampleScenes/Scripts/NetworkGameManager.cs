@@ -3,6 +3,7 @@ using UnityEngine.Networking;
 using Prototype.NetworkLobby;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class NetworkGameManager : NetworkBehaviour
 {
@@ -19,6 +20,7 @@ public class NetworkGameManager : NetworkBehaviour
     public void Shoot()
     {
         NetworkSpaceship.instance.Shooting();
+        GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku menembak: ";
     }
     
     [Header("Gameplay")]
