@@ -19,7 +19,7 @@ public class NetworkGameManager : NetworkBehaviour
 
     public void Shoot()
     {
-        NetworkSpaceship.instance.Shooting();
+        //NetworkSpaceship.instance.Shooting();
         GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku menembak: ";
     }
     

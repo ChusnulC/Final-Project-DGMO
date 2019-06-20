@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
-using UnityEngine.Analytics;
-using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(NetworkTransform))]
 [RequireComponent(typeof(Rigidbody))]
@@ -12,11 +10,11 @@ public class NetworkSpaceship : NetworkBehaviour
     public float speed = 2.0f;
     public float maxSpeed = 3.0f;
 
-    public static NetworkSpaceship instance;
-
     public ParticleSystem killParticle;
     public GameObject trailGameobject;
     public GameObject bulletPrefab;
+
+    public GameObject ButtonShoot;
 
     //Network syncvar
     [SyncVar(hook = "OnScoreChanged")]
@@ -45,27 +43,23 @@ public class NetworkSpaceship : NetworkBehaviour
 
     public VariableJoystick variableJoystick;
     public float playerOrientation = -10f;
-   
+
     void Awake()
     {
         //register the spaceship in the gamemanager, that will allow to loop on it.
         NetworkGameManager.sShips.Add(this);
-        if(instance == null)
-        {
-            instance = this;
-        }
+
+      
     }
 
     void Start()
     {
-        variableJoystick = GameObject.Find("Variable Joystick").transform.GetComponent<VariableJoystick>();
-        int playerID = (int)GetComponent<NetworkIdentity>().connectionToServer.connectionId;
-        //int playerID2 = UnityEditor.Networking.PlayerConnection.ConnectedPlayer.Equals.pl
-        print("Aku adalah player" + playerID);
-        GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku adalah player: " + playerID;
-        
-       // Debug.Log("Player " + playerCount + " connected from " + player.ipAddress + ":" + player.port);
+        if (!isLocalPlayer)
+        {
 
+            ButtonShoot.SetActive(false);
+            print("Button mati");
+        }
         _rigidbody = GetComponent<Rigidbody>();
         _collider = GetComponent<Collider>();
 
@@ -76,13 +70,11 @@ public class NetworkSpaceship : NetworkBehaviour
         //We don't want to handle collision on client, so disable collider there
         _collider.enabled = isServer;
 
+        variableJoystick = GameObject.Find("Variable Joystick").transform.GetComponent<VariableJoystick>();
+        int playerID = (int)GetComponent<NetworkIdentity>().connectionToServer.connectionId;
+        GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku adalah player: " + playerID;
 
-        if (NetworkGameManager.sInstance != null)
-        {//we MAY be awake late (see comment on _wasInit above), so if the instance is already there we init
-            Init();
-        }
-
-        if(playerID == 0)
+        if (playerID == 0)
         {
             transform.position = new Vector3(-100, 0, 0);
             transform.rotation = Quaternion.Euler(0, 90, 0);
@@ -92,24 +84,30 @@ public class NetworkSpaceship : NetworkBehaviour
             transform.position = new Vector3(100, 0, 0);
             transform.rotation = Quaternion.Euler(0, -90, 0);
             playerOrientation = 10f;
-        }
-
-    }
-
-    public void Shooting()
-    {
-        if (_shootingTimer <= 0)
-        {
-            _shootingTimer = 0.2f;
-            //we call a Command, that will be executed only on server, to spawn a new bullet
-            //we pass the position&forward to be sure to shoot from the right one (server can lag one frame behind)
-            CmdFire(transform.position, transform.forward, _rigidbody.velocity);
-
+            
             
         }
 
 
+        if (NetworkGameManager.sInstance != null)
+        {//we MAY be awake late (see comment on _wasInit above), so if the instance is already there we init
+            Init();
+        }
+
+        
     }
+    [ClientCallback]
+    public void Shooting()
+    {
+        if(_shootingTimer <= 0)
+        {        
+            _shootingTimer = 0.2f;
+            //we call a Command, that will be executed only on server, to spawn a new bullet
+            //we pass the position&forward to be sure to shoot from the right one (server can lag one frame behind)
+            CmdFire(transform.position, transform.forward, _rigidbody.velocity);
+        }
+    }
+
     public void Init()
     {
         if (_wasInit)
@@ -141,11 +139,11 @@ public class NetworkSpaceship : NetworkBehaviour
         if (!isLocalPlayer || !_canControl)
             return;
 
-        //_rotation = Input.GetAxis("Horizontal");
+        _rotation = Input.GetAxis("Horizontal");
         _acceleration = Input.GetAxis("Vertical");
 
 
-        if(Input.GetButton("Jump") && _shootingTimer <= 0)
+        if (Input.GetButton("Jump") && _shootingTimer <= 0)
         {
             _shootingTimer = 0.2f;
             //we call a Command, that will be executed only on server, to spawn a new bullet
@@ -155,8 +153,7 @@ public class NetworkSpaceship : NetworkBehaviour
 
         if (_shootingTimer > 0)
             _shootingTimer -= Time.deltaTime;
-
-        }
+    }
 
 
     [ClientCallback]
@@ -177,21 +174,17 @@ public class NetworkSpaceship : NetworkBehaviour
             Quaternion rotation = _rigidbody.rotation * Quaternion.Euler(0, _rotation * rotationSpeed * Time.fixedDeltaTime, 0);
             _rigidbody.MoveRotation(rotation);
 
-            // _rigidbody.AddForce((rotation * Vector3.forward) * _acceleration * 1000.0f * speed * Time.deltaTime);
-            //_rigidbody.AddForce(0, 0, _acceleration * 1000.0f * speed * Time.deltaTime);
-            //transform.Translate(new Vector3(_acceleration * -10.0f * speed * Time.deltaTime, 0, 0));
-
-            Vector3 direction = Vector3.forward * variableJoystick.Horizontal + Vector3.right * variableJoystick.Horizontal;
-            // rb.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode.VelocityChange);
-            transform.Translate(new Vector3(variableJoystick.Vertical * playerOrientation * speed * Time.deltaTime, 0, 0));
-            
-            print("direction = " + variableJoystick.Vertical);
-
+            _rigidbody.AddForce((rotation * Vector3.forward) * _acceleration * 1000.0f * speed * Time.deltaTime);
 
             if (_rigidbody.velocity.magnitude > maxSpeed * 1000.0f)
             {
                 _rigidbody.velocity = _rigidbody.velocity.normalized * maxSpeed * 1000.0f;
             }
+
+            Vector3 direction = Vector3.forward * variableJoystick.Horizontal + Vector3.right * variableJoystick.Horizontal;
+            // rb.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode.VelocityChange);
+            transform.Translate(new Vector3(variableJoystick.Vertical * playerOrientation * speed * Time.deltaTime, 0, 0));
+
 
             CheckExitScreen();
         }
@@ -207,7 +200,7 @@ public class NetworkSpaceship : NetworkBehaviour
         //This way client won't see it's destruction delayed (time for it to happen on server & message to get back)
         NetworkAsteroid asteroid = coll.gameObject.GetComponent<NetworkAsteroid>();
 
-        if(asteroid != null)
+        if (asteroid != null)
         {
             LocalDestroy();
         }
@@ -226,7 +219,7 @@ public class NetworkSpaceship : NetworkBehaviour
 
         if (Mathf.Abs(_rigidbody.position.z) > Camera.main.orthographicSize)
         {
-            _rigidbody.position = new Vector3(_rigidbody.position.x , _rigidbody.position.y, -Mathf.Sign(_rigidbody.position.z) * Camera.main.orthographicSize);
+            _rigidbody.position = new Vector3(_rigidbody.position.x, _rigidbody.position.y, -Mathf.Sign(_rigidbody.position.z) * Camera.main.orthographicSize);
             _rigidbody.position -= _rigidbody.position.normalized * 0.1f; // offset a little bit to avoid looping back & forth between the 2 edges 
         }
     }
@@ -316,7 +309,7 @@ public class NetworkSpaceship : NetworkBehaviour
             GameObject bullet = Instantiate(bulletPrefab, _rigidbody.position + offsets[i], Quaternion.identity) as GameObject;
             NetworkSpaceshipBullet bulletScript = bullet.GetComponent<NetworkSpaceshipBullet>();
 
-            bulletScript.originalDirection = vectorBase[2]; 
+            bulletScript.originalDirection = vectorBase[2];
             bulletScript.owner = this;
 
             //NetworkServer.SpawnWithClientAuthority(bullet, connectionToClient);
@@ -328,7 +321,7 @@ public class NetworkSpaceship : NetworkBehaviour
     [Command]
     public void CmdFire(Vector3 position, Vector3 forward, Vector3 startingVelocity)
     {
-        //if (!isClient) //avoid to create bullet twice (here & in Rpc call) on hosting client
+        if (!isClient) //avoid to create bullet twice (here & in Rpc call) on hosting client
             CreateBullets();
 
         RpcFire();
