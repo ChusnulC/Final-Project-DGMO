@@ -160,6 +160,7 @@ namespace Prototype.NetworkLobby
         public BackButtonDelegate backDelegate;
         public void GoBackButton()
         {
+            //ScoreScript.myScore_instance.ShowPanel();
             backDelegate();
 			topPanel.isInGame = false;
         }

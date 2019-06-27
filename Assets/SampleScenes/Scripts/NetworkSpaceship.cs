@@ -9,10 +9,12 @@ public class NetworkSpaceship : NetworkBehaviour
     public float rotationSpeed = 45.0f;
     public float speed = 2.0f;
     public float maxSpeed = 3.0f;
-
+    public int playerID;
     public ParticleSystem killParticle;
     public GameObject trailGameobject;
     public GameObject bulletPrefab;
+
+
 
     public GameObject ButtonShoot;
 
@@ -43,17 +45,17 @@ public class NetworkSpaceship : NetworkBehaviour
 
     public VariableJoystick variableJoystick;
     public float playerOrientation = -10f;
+    public int playerNumber;
 
     void Awake()
     {
         //register the spaceship in the gamemanager, that will allow to loop on it.
         NetworkGameManager.sShips.Add(this);
-
-      
     }
 
     void Start()
     {
+        //netmanager = GameObject.Find("GameManager").transform.GetComponent<NetworkGameManager>();
         if (!isLocalPlayer)
         {
 
@@ -71,22 +73,6 @@ public class NetworkSpaceship : NetworkBehaviour
         _collider.enabled = isServer;
 
         variableJoystick = GameObject.Find("Variable Joystick").transform.GetComponent<VariableJoystick>();
-        int playerID = (int)GetComponent<NetworkIdentity>().connectionToServer.connectionId;
-        GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku adalah player: " + playerID;
-
-        if (playerID == 0)
-        {
-            transform.position = new Vector3(-100, 0, 0);
-            transform.rotation = Quaternion.Euler(0, 90, 0);
-        }
-        if (playerID == 1)
-        {
-            transform.position = new Vector3(100, 0, 0);
-            transform.rotation = Quaternion.Euler(0, -90, 0);
-            playerOrientation = 10f;
-            
-            
-        }
 
 
         if (NetworkGameManager.sInstance != null)
@@ -122,7 +108,29 @@ public class NetworkSpaceship : NetworkBehaviour
         _scoreText.color = color;
         _wasInit = true;
 
+        playerID = (int)GetComponent<NetworkIdentity>().connectionToServer.connectionId;
+        //GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku adalah player: " + playerID;
+
+        if (playerID == 1)
+        {
+            
+            playerNumber = playerID;
+            transform.position = new Vector3(100, 0, 0);
+            transform.rotation = Quaternion.Euler(180, 90, 0);
+            playerOrientation = -10f;
+        }
+        else
+        {
+            playerNumber = playerID;
+            transform.position = new Vector3(-100, 0, 0);
+            transform.rotation = Quaternion.Euler(0, 90, 0);
+
+
+        }
+
+
         UpdateScoreLifeText();
+        
     }
 
     void OnDestroy()
@@ -229,6 +237,10 @@ public class NetworkSpaceship : NetworkBehaviour
     void OnScoreChanged(int newValue)
     {
         score = newValue;
+        if (isClient) { 
+            PlayerPrefs.SetInt("MyScore", score);
+            print("myScore: " + score);
+        }
         UpdateScoreLifeText();
     }
 
@@ -254,6 +266,28 @@ public class NetworkSpaceship : NetworkBehaviour
     //So disabling mean disabling collider & renderer only
     public void EnableSpaceShip(bool enable)
     {
+
+        if(lifeCount <= 0)
+        {
+            //if (isClient)
+            //{
+            //    killClient();
+            //}
+            // PlayerPrefs.SetInt("MyScore", score);
+            //PlayerPrefs.SetInt("GameStatus", 1);
+            //netmanager.BacktoLoby();
+        }
+        //int playerID = (int)GetComponent<NetworkIdentity>().connectionToServer.connectionId;
+        if (playerNumber == 0)
+        {
+            transform.position = new Vector3(-100, 0, 0);
+            transform.rotation = Quaternion.Euler(0, 90, 0);
+        }else
+        {
+            transform.position = new Vector3(100, 0, 0);
+            transform.rotation = Quaternion.Euler(180,90, 0);
+            playerOrientation = -10f;
+        }
         GetComponent<Renderer>().enabled = enable;
         _collider.enabled = isServer && enable;
         trailGameobject.SetActive(enable);
@@ -290,6 +324,21 @@ public class NetworkSpaceship : NetworkBehaviour
             //we start the coroutine on the manager, as disabling a gameobject stop ALL coroutine started by it
             NetworkGameManager.sInstance.StartCoroutine(NetworkGameManager.sInstance.WaitForRespawn(this));
         }
+
+        if(lifeCount<=0){
+            PlayerPrefs.SetInt("MyScore", score);
+           
+
+            NetworkGameManager.sInstance.BacktoLoby();
+            
+           
+        }
+    }
+    
+    public void killClient()
+    {
+        PlayerPrefs.SetInt("MyScore", score);
+        print("KLIEN KILL");
     }
 
     [Server]

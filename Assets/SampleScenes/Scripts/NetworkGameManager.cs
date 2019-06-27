@@ -20,7 +20,7 @@ public class NetworkGameManager : NetworkBehaviour
     public void Shoot()
     {
         //NetworkSpaceship.instance.Shooting();
-        GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku menembak: ";
+       // GameObject.Find("infoPlayer").transform.GetComponent<Text>().text = "Aku menembak: ";
     }
     
     [Header("Gameplay")]
@@ -39,6 +39,7 @@ public class NetworkGameManager : NetworkBehaviour
 
     void Start()
     {
+       
         if (isServer)
         {
             StartCoroutine(AsteroidCoroutine());
@@ -66,6 +67,8 @@ public class NetworkGameManager : NetworkBehaviour
         {
             StartCoroutine(ReturnToLoby());
         }
+
+
     }
 
     public override void OnStartClient()
@@ -77,6 +80,23 @@ public class NetworkGameManager : NetworkBehaviour
             ClientScene.RegisterPrefab(obj);
         }
     }
+
+    public void BacktoLoby()
+    {
+        StartCoroutine(ReturnToLobyandReset());
+    }
+
+    IEnumerator ReturnToLobyandReset()
+    {
+        _running = false;
+        //ScoreScript.myScore_instance.ShowPanel();
+        yield return new WaitForSeconds(3.0f);
+
+        //print()
+        LobbyManager.s_Singleton.GoBackButton();
+        //Application.LoadLevel(0);
+    }
+
 
     IEnumerator ReturnToLoby()
     {
